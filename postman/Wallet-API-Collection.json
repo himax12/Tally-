@@ -1,0 +1,247 @@
+{
+  "info": {
+    "name": "Wallet API Collection",
+    "description": "Complete API collection for testing the Wallet System",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Top-up (Add Credits)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{aliceUserId}}\",\n  \"assetTypeId\": \"{{goldCoinsId}}\",\n  \"amount\": 100,\n  \"idempotencyKey\": \"postman-topup-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/topup",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "topup"]
+        },
+        "description": "Add credits to user wallet (purchase)"
+      }
+    },
+    {
+      "name": "2. Get Balance",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/balance?userId={{aliceUserId}}&assetTypeId={{goldCoinsId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "balance"],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{aliceUserId}}"
+            },
+            {
+              "key": "assetTypeId",
+              "value": "{{goldCoinsId}}"
+            }
+          ]
+        },
+        "description": "Get current wallet balance"
+      }
+    },
+    {
+      "name": "3. Bonus (Free Credits)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{aliceUserId}}\",\n  \"assetTypeId\": \"{{goldCoinsId}}\",\n  \"amount\": 50,\n  \"idempotencyKey\": \"postman-bonus-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/bonus",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "bonus"]
+        },
+        "description": "Issue bonus credits to user"
+      }
+    },
+    {
+      "name": "4. Spend (Deduct Credits)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{aliceUserId}}\",\n  \"assetTypeId\": \"{{goldCoinsId}}\",\n  \"amount\": 30,\n  \"idempotencyKey\": \"postman-spend-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/spend",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "spend"]
+        },
+        "description": "Spend credits from user wallet"
+      }
+    },
+    {
+      "name": "5. Get Transactions",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/transactions?userId={{aliceUserId}}&assetTypeId={{goldCoinsId}}&limit=10&offset=0",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "transactions"],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{aliceUserId}}"
+            },
+            {
+              "key": "assetTypeId",
+              "value": "{{goldCoinsId}}"
+            },
+            {
+              "key": "limit",
+              "value": "10"
+            },
+            {
+              "key": "offset",
+              "value": "0"
+            }
+          ]
+        },
+        "description": "Get transaction history for wallet"
+      }
+    },
+    {
+      "name": "Error: Insufficient Balance",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{aliceUserId}}\",\n  \"assetTypeId\": \"{{goldCoinsId}}\",\n  \"amount\": 999999,\n  \"idempotencyKey\": \"postman-error-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/spend",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "spend"]
+        },
+        "description": "Test error case: trying to spend more than available balance"
+      }
+    },
+    {
+      "name": "Error: Invalid Amount",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{aliceUserId}}\",\n  \"assetTypeId\": \"{{goldCoinsId}}\",\n  \"amount\": -10,\n  \"idempotencyKey\": \"postman-error-002\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/topup",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "topup"]
+        },
+        "description": "Test error case: negative amount"
+      }
+    },
+    {
+      "name": "Test: Idempotency",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{aliceUserId}}\",\n  \"assetTypeId\": \"{{goldCoinsId}}\",\n  \"amount\": 25,\n  \"idempotencyKey\": \"idempotency-test-fixed-key\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/topup",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "topup"]
+        },
+        "description": "Test idempotency: send this request multiple times with same key, balance should only increase once"
+      }
+    },
+    {
+      "name": "Bob: Top-up Silver Coins",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{bobUserId}}\",\n  \"assetTypeId\": \"{{silverCoinsId}}\",\n  \"amount\": 200,\n  \"idempotencyKey\": \"postman-bob-topup-001\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/topup",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "topup"]
+        },
+        "description": "Test with different user and asset type"
+      }
+    },
+    {
+      "name": "Bob: Get Balance",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/wallet/balance?userId={{bobUserId}}&assetTypeId={{silverCoinsId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "wallet", "balance"],
+          "query": [
+            {
+              "key": "userId",
+              "value": "{{bobUserId}}"
+            },
+            {
+              "key": "assetTypeId",
+              "value": "{{silverCoinsId}}"
+            }
+          ]
+        },
+        "description": "Get Bob's Silver Coins balance"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

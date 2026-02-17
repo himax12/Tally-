@@ -1,0 +1,140 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - represents application users
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  wallets Wallet[]
+
+  @@map("users")
+}
+
+// AssetType model - defines types of credits (Gold Coins, Diamonds, etc.)
+model AssetType {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  wallets       Wallet[]
+  systemWallets SystemWallet[]
+
+  @@map("asset_types")
+}
+
+// Wallet model - user wallets for specific asset types
+model Wallet {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  assetTypeId String   @map("asset_type_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assetType    AssetType     @relation(fields: [assetTypeId], references: [id])
+  ledgerEntries LedgerEntry[]
+
+  @@unique([userId, assetTypeId])
+  @@index([userId])
+  @@index([assetTypeId])
+  @@map("wallets")
+}
+
+// SystemWallet model - system accounts (Treasury, Revenue, etc.)
+model SystemWallet {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  assetTypeId String   @map("asset_type_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  assetType     AssetType     @relation(fields: [assetTypeId], references: [id])
+  ledgerEntries LedgerEntry[]
+
+  @@index([assetTypeId])
+  @@map("system_wallets")
+}
+
+// Transaction model - records all wallet operations
+model Transaction {
+  id          String            @id @default(uuid())
+  referenceId String            @unique @map("reference_id")
+  type        TransactionType
+  status      TransactionStatus @default(PENDING)
+  amount      Decimal           @db.Decimal(20, 2)
+  metadata    Json?
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  ledgerEntries LedgerEntry[]
+
+  @@index([referenceId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+enum TransactionType {
+  TOPUP
+  BONUS
+  SPEND
+}
+
+enum TransactionStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// LedgerEntry model - double-entry bookkeeping
+model LedgerEntry {
+  id              String    @id @default(uuid())
+  transactionId   String    @map("transaction_id")
+  walletId        String?   @map("wallet_id")
+  systemWalletId  String?   @map("system_wallet_id")
+  entryType       EntryType @map("entry_type")
+  amount          Decimal   @db.Decimal(20, 2)
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  transaction  Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  wallet       Wallet?       @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  systemWallet SystemWallet? @relation(fields: [systemWalletId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([walletId])
+  @@index([systemWalletId])
+  @@index([createdAt])
+  @@map("ledger_entries")
+}
+
+enum EntryType {
+  CREDIT
+  DEBIT
+}
+
+// IdempotencyKey model - prevents duplicate transactions
+model IdempotencyKey {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  response  Json
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  @@index([key])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
