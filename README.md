@@ -25,38 +25,40 @@ A robust, ledger-based wallet system for high-traffic applications like gaming p
 
 ---
 
+## 🌐 Live Deployment
+
+**Live URL**: [https://your-app.up.railway.app](https://your-app.up.railway.app)
+
+Deployed on Railway with PostgreSQL.
+
+---
+
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- Node.js 18+
-- Docker (for PostgreSQL)
-- npm or yarn
-
-### Installation
+### Option 1: One-Command Setup (Recommended)
 
 ```bash
-# Clone the repository
 git clone <your-repo-url>
 cd assignment
+chmod +x setup.sh
+./setup.sh
+```
 
-# Install dependencies
+### Option 2: Docker Compose (Full Stack)
+
+```bash
+docker compose up -d --build
+# App at http://localhost:3000 — migrations and seed run automatically
+```
+
+### Option 3: Manual Setup
+
+```bash
 npm install
-
-# Start PostgreSQL
-docker-compose up -d
-
-# Run database migrations
-npx prisma migrate dev --name init
-
-# Seed the database
-npm run db:seed
-
-# Generate Prisma Client
-npx prisma generate
-
-# Start development server
-npm run dev
+docker compose up -d postgres     # Start PostgreSQL
+npx prisma migrate deploy          # Run migrations
+npm run db:seed                     # Seed data
+npm run dev                         # Start server
 ```
 
 Server runs at **http://localhost:3000**
@@ -154,15 +156,56 @@ AssetType ──── SystemWallet ──── LedgerEntry
 4. **Atomicity**: Transactions complete fully or not at all
 5. **Idempotency**: Duplicate requests return same result
 
-See [INVARIANTS.md](./docs/INVARIANTS.md) for all 10 system invariants.
+---
 
-### **Tech Stack**
+## 🛠️ Technology Choices & Why
 
-- **Framework**: Next.js 14+ (App Router)
-- **Language**: TypeScript 5.0+
-- **Database**: PostgreSQL 15+
-- **ORM**: Prisma 5.0+
-- **Styling**: Tailwind CSS
+| Technology | Why |
+|---|---|
+| **Next.js 14 (App Router)** | API routes with zero boilerplate — no Express setup needed. Built-in TypeScript support, file-based routing for clean endpoint organization, and seamless deployment to platforms like Railway/Vercel. |
+| **TypeScript** | Type safety across the entire stack — catches bugs at compile time, especially critical for financial operations where type mismatches (e.g., string vs number amounts) can cause real data corruption. |
+| **PostgreSQL** | ACID-compliant relational database essential for financial systems. Supports `SELECT ... FOR UPDATE` (pessimistic locking), serializable transactions, and has battle-tested reliability for ledger workloads. |
+| **Prisma ORM** | Type-safe database queries generated from the schema — eliminates SQL injection risks and provides compile-time validation of all queries. Interactive transactions (`$transaction`) map perfectly to double-entry ledger operations. |
+
+---
+
+## 🔐 Concurrency Strategy
+
+The wallet system handles concurrent transactions safely using a **three-layer defense**:
+
+### 1. Pessimistic Locking (`SELECT FOR UPDATE`)
+
+Every wallet operation acquires a row-level lock on the wallet before reading or modifying it:
+
+```sql
+SELECT * FROM "Wallet" WHERE id = $1 FOR UPDATE
+```
+
+This ensures that if two requests try to spend from the same wallet simultaneously, one waits for the other to finish. Implemented in `lib/ledger.ts` → `getWalletWithLock()`.
+
+### 2. Serializable Transactions (Prisma `$transaction`)
+
+All ledger mutations happen inside Prisma interactive transactions with `isolationLevel: 'Serializable'`. This guarantees that concurrent transactions see a consistent snapshot and cannot interleave:
+
+```typescript
+await prisma.$transaction(async (tx) => {
+  const wallet = await getWalletWithLock(tx, walletId);
+  const balance = await calculateBalance(tx, walletId);
+  // ... create ledger entries atomically
+}, { isolationLevel: 'Serializable' });
+```
+
+### 3. Retry with Exponential Backoff (Deadlock Avoidance)
+
+If two transactions deadlock (e.g., each waiting for the other's lock), PostgreSQL aborts one. The `lib/retry.ts` module automatically retries failed transactions with exponential backoff:
+
+```
+Attempt 1 → fails (deadlock) → wait 100ms
+Attempt 2 → fails (deadlock) → wait 200ms  
+Attempt 3 → succeeds ✓
+```
+
+This combination ensures **zero lost transactions** and **zero negative balances** even under high concurrency.
 
 ---
 
@@ -254,12 +297,9 @@ See [INVARIANTS.md](./docs/INVARIANTS.md) for detailed explanations.
 
 ## 📚 Documentation
 
-- [API Testing Guide](./docs/API_TESTING_GUIDE.md) - Complete curl testing guide
-- [Postman Guide](./docs/POSTMAN_GUIDE.md) - Step-by-step Postman setup
-- [Invariants](./docs/INVARIANTS.md) - System invariants explained
-- [Implementation Plan](./docs/implementation_plan.md) - Technical design
-- [Walkthrough](./docs/walkthrough.md) - Complete implementation summary
-- [Critical Analysis](./docs/critical_analysis.md) - Strengths & weaknesses
+- [QUICK_START.md](./QUICK_START.md) - Quick start guide
+- [TESTING.md](./TESTING.md) - Testing guide
+- Postman Collection: `postman/Wallet-API-Collection.json`
 
 ---
 
