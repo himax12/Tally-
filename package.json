@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "prisma db seed",
@@ -27,6 +28,7 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "@prisma/client": "^5.20.0",
+    "express-rate-limit": "^7.4.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
