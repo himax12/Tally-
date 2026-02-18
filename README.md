@@ -47,17 +47,56 @@ chmod +x setup.sh
 ### Option 2: Docker Compose (Full Stack)
 
 ```bash
+# Build and start everything (app + PostgreSQL)
 docker compose up -d --build
-# App at http://localhost:3000 — migrations and seed run automatically
+
+# Check both containers are running
+docker compose ps
+
+# View app logs (migrations + seed run on startup)
+docker compose logs -f app
+
+# Once ready, get the seeded user/asset IDs
+docker compose exec app node scripts/get-ids.js
 ```
 
-### Option 3: Manual Setup
+#### Testing the API (Docker)
+
+```bash
+# Replace USER_ID and ASSET_ID with values from get-ids.js
+
+# Check balance
+curl "http://localhost:3000/api/wallet/balance?userId=USER_ID&assetTypeId=ASSET_ID"
+
+# Top-up 100 credits
+curl -X POST http://localhost:3000/api/wallet/topup \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"USER_ID","assetTypeId":"ASSET_ID","amount":100,"idempotencyKey":"test-1"}'
+
+# Spend 50 credits
+curl -X POST http://localhost:3000/api/wallet/spend \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"USER_ID","assetTypeId":"ASSET_ID","amount":50,"idempotencyKey":"test-2"}'
+
+# View metrics
+curl http://localhost:3000/api/metrics
+```
+
+#### Stopping
+
+```bash
+docker compose down        # Stop containers
+docker compose down -v     # Stop + wipe all data (fresh start)
+```
+
+### Option 3: Manual Setup (without Docker for app)
 
 ```bash
 npm install
-docker compose up -d postgres     # Start PostgreSQL
+docker compose up -d postgres     # Start PostgreSQL only
 npx prisma migrate deploy          # Run migrations
 npm run db:seed                     # Seed data
+node scripts/get-ids.js             # Get user/asset IDs
 npm run dev                         # Start server
 ```
 
