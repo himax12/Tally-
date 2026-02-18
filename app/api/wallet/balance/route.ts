@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { calculateBalance } from '@/lib/ledger'
 import { isValidUUID } from '@/lib/validation'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)

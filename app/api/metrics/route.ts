@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { MetricsCollector } from '@/lib/metrics'
 import { config } from '@/lib/config'
 
+export const dynamic = 'force-dynamic'
+
 /**
  * GET /api/metrics
  * Returns current metrics and statistics
