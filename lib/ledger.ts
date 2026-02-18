@@ -39,10 +39,30 @@ export async function getWalletWithLock(
   prisma: PrismaClient,
   walletId: string
 ) {
-  // Fetch wallet - Prisma's transaction isolation provides concurrency safety
-  // The entire operation is wrapped in a transaction in operations.ts
+  // Use raw SQL to acquire row-level lock
+  // This prevents concurrent modifications to the same wallet
+  // The lock is held until the transaction commits or rolls back
+  const result = await prisma.$queryRaw<Array<{
+    id: string
+    user_id: string
+    asset_type_id: string
+    created_at: Date
+    updated_at: Date
+  }>>`
+    SELECT id, user_id, asset_type_id, created_at, updated_at
+    FROM wallets
+    WHERE id = ${walletId}::uuid
+    FOR UPDATE
+  `
+
+  if (!result || result.length === 0) {
+    return null
+  }
+
+  // Fetch full wallet with relations using the locked ID
+  // The row is already locked from the query above
   return prisma.wallet.findUnique({
-    where: { id: walletId },
+    where: { id: result[0].id },
     include: {
       user: true,
       assetType: true,

@@ -1,3 +1,5 @@
+import { config } from './config'
+
 /**
  * Retry Logic for Transient Failures
  * Implements exponential backoff for database deadlocks and connection issues
@@ -10,12 +12,8 @@ export interface RetryOptions {
   backoffMultiplier?: number
 }
 
-const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
-  maxAttempts: 3,
-  initialDelayMs: 100,
-  maxDelayMs: 5000,
-  backoffMultiplier: 2,
-}
+// NOTE: DEFAULT_RETRY_OPTIONS is now deprecated in favor of config.retry
+// We'll use the config values as defaults in withRetry
 
 /**
  * Sleep for specified milliseconds
@@ -58,7 +56,12 @@ export async function withRetry<T>(
   fn: () => Promise<T>,
   options: RetryOptions = {}
 ): Promise<T> {
-  const opts = { ...DEFAULT_RETRY_OPTIONS, ...options }
+  const opts = { 
+    maxAttempts: options.maxAttempts ?? config.retry.maxAttempts,
+    initialDelayMs: options.initialDelayMs ?? config.retry.initialDelayMs,
+    maxDelayMs: options.maxDelayMs ?? config.retry.maxDelayMs,
+    backoffMultiplier: options.backoffMultiplier ?? config.retry.backoffMultiplier
+  }
   let lastError: Error | undefined
 
   for (let attempt = 1; attempt <= opts.maxAttempts; attempt++) {

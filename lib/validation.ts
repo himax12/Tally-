@@ -4,6 +4,7 @@
  */
 
 import { InvalidAmountError } from './errors'
+import { config } from './config'
 
 /**
  * Validate UUID format
@@ -22,9 +23,9 @@ export function validateAmount(amount: number): void {
     throw new InvalidAmountError(amount)
   }
 
-  // Check for reasonable precision (max 2 decimal places)
+  // Check for reasonable precision
   const decimalPlaces = (amount.toString().split('.')[1] || '').length
-  if (decimalPlaces > 2) {
+  if (decimalPlaces > config.validation.maxDecimalPlaces) {
     throw new InvalidAmountError(amount)
   }
 }
@@ -33,14 +34,22 @@ export function validateAmount(amount: number): void {
  * Validate idempotency key format
  */
 export function validateIdempotencyKey(key: string): void {
-  if (!key || typeof key !== 'string' || key.length < 1 || key.length > 255) {
-    throw new Error('Invalid idempotency key. Must be 1-255 characters.')
+  if (
+    !key || 
+    typeof key !== 'string' || 
+    key.length < config.validation.idempotencyKeyMinLength || 
+    key.length > config.validation.idempotencyKeyMaxLength
+  ) {
+    throw new Error(`Invalid idempotency key. Must be ${config.validation.idempotencyKeyMinLength}-${config.validation.idempotencyKeyMaxLength} characters.`)
   }
 }
 
 /**
  * Sanitize string input
  */
-export function sanitizeString(input: string, maxLength: number = 255): string {
+export function sanitizeString(
+  input: string, 
+  maxLength: number = config.validation.maxStringLength
+): string {
   return input.trim().substring(0, maxLength)
 }

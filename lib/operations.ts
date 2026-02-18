@@ -8,6 +8,8 @@ import {
 import { calculateBalance, getWalletWithLock, createTransaction } from './ledger'
 import { validateAmount } from './validation'
 import { withRetry } from './retry'
+import { checkTransactionLimits } from './limits'
+import { withMetrics } from './metrics'
 
 /**
  * High-Level Wallet Operations
@@ -41,8 +43,17 @@ export async function topUp(
   // Validate amount
   validateAmount(amount)
 
-  return withRetry(async () => {
-    return await prisma.$transaction(async (tx) => {
+  // Check transaction limits
+  await checkTransactionLimits(prisma, {
+    userId,
+    assetTypeId,
+    amount,
+    operation: 'topup'
+  })
+
+  return withMetrics('topup', amount, async () => {
+    return withRetry(async () => {
+      return await prisma.$transaction(async (tx) => {
       // Check for duplicate transaction
       const existing = await tx.transaction.findUnique({
         where: { referenceId },
@@ -103,6 +114,7 @@ export async function topUp(
         message: `Successfully topped up ${amount} credits`,
       }
     })
+    })
   })
 }
 
@@ -126,8 +138,9 @@ export async function bonus(
   // Validate amount
   validateAmount(amount)
 
-  return withRetry(async () => {
-    return await prisma.$transaction(async (tx) => {
+  return withMetrics('bonus', amount, async () => {
+    return withRetry(async () => {
+      return await prisma.$transaction(async (tx) => {
       // Check for duplicate transaction
       const existing = await tx.transaction.findUnique({
         where: { referenceId },
@@ -188,6 +201,7 @@ export async function bonus(
         message: `Successfully added ${amount} bonus credits`,
       }
     })
+    })
   })
 }
 
@@ -211,8 +225,17 @@ export async function spend(
   // Validate amount
   validateAmount(amount)
 
-  return withRetry(async () => {
-    return await prisma.$transaction(async (tx) => {
+  // Check transaction limits
+  await checkTransactionLimits(prisma, {
+    userId,
+    assetTypeId,
+    amount,
+    operation: 'spend'
+  })
+
+  return withMetrics('spend', amount, async () => {
+    return withRetry(async () => {
+      return await prisma.$transaction(async (tx) => {
       // Check for duplicate transaction
       const existing = await tx.transaction.findUnique({
         where: { referenceId },
@@ -279,6 +302,7 @@ export async function spend(
         newBalance,
         message: `Successfully spent ${amount} credits`,
       }
+    })
     })
   })
 }

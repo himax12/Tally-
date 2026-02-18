@@ -57,3 +57,14 @@ export class TransactionFailedError extends WalletError {
     this.name = 'TransactionFailedError'
   }
 }
+
+export class LimitExceededError extends WalletError {
+  constructor(
+    public limitType: string,
+    public amount: number,
+    public limit: number
+  ) {
+    super(`${limitType} limit exceeded: ${amount} > ${limit}`)
+    this.name = 'LimitExceededError'
+  }
+}
